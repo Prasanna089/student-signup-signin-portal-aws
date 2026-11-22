@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student Portal | Signup & Signin</title>
+  <style>
+    :root { font-family: Arial, sans-serif; color: #172033; background: #f3f6fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+    .card { width: min(100%, 440px); background: #fff; border-radius: 18px; padding: 30px;
+            box-shadow: 0 12px 40px rgba(20,40,80,.10); }
+    h1 { margin: 0 0 8px; font-size: 26px; }
+    .sub { color: #65718a; margin: 0 0 24px; line-height: 1.5; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 22px; }
+    .tabs button { flex: 1; border: 0; padding: 12px; border-radius: 10px; cursor: pointer;
+                   background: #edf1f7; color: #34415b; font-weight: 700; }
+    .tabs button.active { background: #1e4fd7; color: white; }
+    label { display: block; font-size: 14px; font-weight: 700; margin: 14px 0 7px; }
+    input { width: 100%; padding: 13px; border: 1px solid #d8dfeb; border-radius: 9px; font-size: 15px; }
+    input:focus { outline: 2px solid #b9cbff; border-color: #1e4fd7; }
+    .submit { width: 100%; margin-top: 20px; border: 0; padding: 14px; border-radius: 10px;
+              background: #1e4fd7; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .submit:disabled { opacity: .6; cursor: wait; }
+    #message { min-height: 22px; margin-top: 16px; font-size: 14px; line-height: 1.45; }
+    #message.success { color: #137547; } #message.error { color: #b42318; }
+    .hidden { display: none; }
+    .note { color: #7a8498; font-size: 12px; margin-top: 18px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Student Portal</h1>
+    <p class="sub">Create a student account or sign in to continue.</p>
+
+    <div class="tabs" role="tablist" aria-label="Account options">
+      <button id="signupTab" class="active" type="button">Sign Up</button>
+      <button id="signinTab" type="button">Sign In</button>
+    </div>
+
+    <form id="authForm">
+      <div id="nameGroup">
+        <label for="name">Full name</label>
+        <input id="name" name="name" autocomplete="name" placeholder="Enter your name">
+      </div>
+      <label for="email">Email address</label>
+      <input id="email" name="email" type="email" autocomplete="email" required placeholder="name@example.com">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" minlength="6" required placeholder="At least 6 characters">
+      <button id="submitButton" class="submit" type="submit">Create Account</button>
+    </form>
+
+    <div id="message" role="status" aria-live="polite"></div>
+    <p class="note">Learning demonstration only. Do not use real or sensitive student information. This demo does not issue secure login tokens.</p>
+  </main>
+
+  <script>
+    // Your deployed API Gateway HTTP API invoke URL (no trailing slash).
+    const API_URL = "https://8nemkn0y0h.execute-api.ap-south-2.amazonaws.com";
+
+    let mode = "signup";
+    const form = document.getElementById("authForm");
+    const nameGroup = document.getElementById("nameGroup");
+    const message = document.getElementById("message");
+    const submitButton = document.getElementById("submitButton");
+    const signupTab = document.getElementById("signupTab");
+    const signinTab = document.getElementById("signinTab");
+
+    function setMode(nextMode) {
+      mode = nextMode;
+      const isSignup = mode === "signup";
+      nameGroup.classList.toggle("hidden", !isSignup);
+      document.getElementById("name").required = isSignup;
+      document.getElementById("password").autocomplete = isSignup ? "new-password" : "current-password";
+      submitButton.textContent = isSignup ? "Create Account" : "Sign In";
+      signupTab.classList.toggle("active", isSignup);
+      signinTab.classList.toggle("active", !isSignup);
+      message.textContent = "";
+      message.className = "";
+    }
+
+    signupTab.addEventListener("click", () => setMode("signup"));
+    signinTab.addEventListener("click", () => setMode("signin"));
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      message.textContent = "";
+      message.className = "";
+      submitButton.disabled = true;
+
+      const payload = {
+        email: document.getElementById("email").value.trim(),
+        password: document.getElementById("password").value
+      };
+      if (mode === "signup") payload.name = document.getElementById("name").value.trim();
+
+      try {
+        const response = await fetch(`${API_URL}/${mode}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.message || `Request failed (${response.status})`);
+        }
+
+        message.className = "success";
+        if (mode === "signup") {
+          message.textContent = result.message || "Account created successfully. You can now sign in.";
+          form.reset();
+        } else {
+          const studentName = result.student?.name || "student";
+          message.textContent = `Welcome, ${studentName}! ${result.message || ""}`;
+        }
+      } catch (error) {
+        message.className = "error";
+        message.textContent = error.message || "Cannot reach the server. Check the API URL and API Gateway CORS settings.";
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

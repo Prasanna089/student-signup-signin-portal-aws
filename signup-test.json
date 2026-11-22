@@ -1,0 +1,5 @@
+{
+  "version": "2.0",
+  "rawPath": "/signup",
+  "body": "{\"name\": \"Test Student\", \"email\": \"test@example.com\", \"password\": \"Pass@123\"}"
+}
